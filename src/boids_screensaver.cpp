@@ -237,6 +237,9 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM w_param, LPA
     case WM_CREATE:
         SetTimer(window, kFrameTimerId, kFrameTimerMilliseconds, nullptr);
         GetCursorPos(&g_initial_mouse);
+        if (g_fullscreen) {
+            SetCursor(nullptr);
+        }
         return 0;
 
     case WM_SIZE:
@@ -254,6 +257,15 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM w_param, LPA
 
     case WM_ERASEBKGND:
         return 1;
+
+    case WM_SETCURSOR:
+        if (g_fullscreen) {
+            // WM_SETCURSOR is sent whenever Windows would otherwise restore
+            // the class cursor while the pointer is over the saver window.
+            SetCursor(nullptr);
+            return TRUE;
+        }
+        return DefWindowProcA(window, message, w_param, l_param);
 
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
@@ -301,7 +313,7 @@ bool register_window_class() {
     window_class.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
     window_class.lpfnWndProc = window_procedure;
     window_class.hInstance = g_instance;
-    window_class.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    window_class.hCursor = g_fullscreen ? nullptr : LoadCursor(nullptr, IDC_ARROW);
     window_class.hbrBackground = nullptr;
     window_class.lpszClassName = kWindowClass;
     return RegisterClassExA(&window_class) != 0 || GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
